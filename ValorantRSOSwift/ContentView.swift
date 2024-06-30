@@ -17,7 +17,14 @@ struct ContentView: View
     {
         VStack {
             if let token = token {
-                Text("Token: \(token)")
+                VStack(spacing: 10)
+                {
+                    Text("Token type: \(token.type)")
+                    Text("Token: \(token.token)")
+                    Text("idToken: \(token.idToken)")
+                    Text("expiration: \(token.expiration)")
+                }
+                .lineLimit(3)
             } else if let error = error {
                 Text("Error: \(error.localizedDescription)")
             } else {
