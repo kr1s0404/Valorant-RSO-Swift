@@ -12,7 +12,7 @@ import WebKit
 struct WebView: UIViewRepresentable
 {
     let url: URL
-    let onAuthCompletion: (Result<String, Error>) -> Void
+    let onAuthCompletion: (Result<AccessToken, Error>) -> Void
     
     class Coordinator: NSObject, WKNavigationDelegate {
         var parent: WebView
@@ -33,12 +33,11 @@ struct WebView: UIViewRepresentable
             
             // Check if the URL is the redirect URL containing the access token
             if url.absoluteString.starts(with: "https://playvalorant.com/") {
-                if let token = extractToken(from: url) {
+                do {
+                    let token = try extractToken(from: url)
                     parent.onAuthCompletion(.success(token))
-                } else {
-                    parent.onAuthCompletion(.failure(NSError(domain: "",
-                                                             code: 0,
-                                                             userInfo: [NSLocalizedDescriptionKey: "Token not found"])))
+                } catch {
+                    parent.onAuthCompletion(.failure(error))
                 }
                 decisionHandler(.cancel)
                 return
@@ -47,19 +46,36 @@ struct WebView: UIViewRepresentable
         }
         
         // Extract token from the URL fragment
-        private func extractToken(from url: URL) -> String? {
+        private func extractToken(from url: URL) throws -> AccessToken {
             guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                   let fragment = components.fragment else {
-                return nil
+                fatalError()
             }
             
             let params = fragment.split(separator: "&").map { $0.split(separator: "=") }
+            var values: [String: String] = [:]
+            
             for param in params {
-                if param[0] == "access_token" {
-                    return String(param[1])
+                if param.count == 2 {
+                    values[String(param[0])] = String(param[1])
                 }
             }
-            return nil
+            
+            guard
+                let type = values["token_type"],
+                let token = values["access_token"],
+                let idToken = values["id_token"],
+                let duration = values["expires_in"].flatMap(Int.init)
+            else {
+                fatalError()
+            }
+            
+            return .init(
+                type: type,
+                token: token,
+                idToken: idToken,
+                expiration: .init(timeIntervalSinceNow: .init(duration) - 30)
+            )
         }
     }
     

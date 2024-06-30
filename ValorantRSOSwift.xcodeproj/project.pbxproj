@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2FEEBB2C2C31DD44006D66B6 /* AccessToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FEEBB2B2C31DD44006D66B6 /* AccessToken.swift */; };
 		2FFD64252C31B3EF00897790 /* ValorantRSOSwiftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFD64242C31B3EF00897790 /* ValorantRSOSwiftApp.swift */; };
 		2FFD64272C31B3EF00897790 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFD64262C31B3EF00897790 /* ContentView.swift */; };
 		2FFD64292C31B3F000897790 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2FFD64282C31B3F000897790 /* Assets.xcassets */; };
@@ -16,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2FEEBB2B2C31DD44006D66B6 /* AccessToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessToken.swift; sourceTree = "<group>"; };
 		2FFD64212C31B3EF00897790 /* ValorantRSOSwift.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ValorantRSOSwift.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FFD64242C31B3EF00897790 /* ValorantRSOSwiftApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValorantRSOSwiftApp.swift; sourceTree = "<group>"; };
 		2FFD64262C31B3EF00897790 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -59,6 +61,7 @@
 				2FFD64262C31B3EF00897790 /* ContentView.swift */,
 				2FFD64322C31B40800897790 /* WebView.swift */,
 				2FFD64342C31B43300897790 /* Constant.swift */,
+				2FEEBB2B2C31DD44006D66B6 /* AccessToken.swift */,
 				2FFD64282C31B3F000897790 /* Assets.xcassets */,
 				2FFD642A2C31B3F000897790 /* Preview Content */,
 			);
@@ -89,6 +92,8 @@
 			dependencies = (
 			);
 			name = ValorantRSOSwift;
+			packageProductDependencies = (
+			);
 			productName = ValorantRSOSwift;
 			productReference = 2FFD64212C31B3EF00897790 /* ValorantRSOSwift.app */;
 			productType = "com.apple.product-type.application";
@@ -117,6 +122,8 @@
 				Base,
 			);
 			mainGroup = 2FFD64182C31B3EF00897790;
+			packageReferences = (
+			);
 			productRefGroup = 2FFD64222C31B3EF00897790 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -147,6 +154,7 @@
 				2FFD64272C31B3EF00897790 /* ContentView.swift in Sources */,
 				2FFD64252C31B3EF00897790 /* ValorantRSOSwiftApp.swift in Sources */,
 				2FFD64352C31B43300897790 /* Constant.swift in Sources */,
+				2FEEBB2C2C31DD44006D66B6 /* AccessToken.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

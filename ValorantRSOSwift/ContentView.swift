@@ -10,7 +10,7 @@ import SwiftUI
 struct ContentView: View
 {
     @State private var showWebView = false
-    @State private var token: String?
+    @State private var token: AccessToken?
     @State private var error: Error?
     
     var body: some View
