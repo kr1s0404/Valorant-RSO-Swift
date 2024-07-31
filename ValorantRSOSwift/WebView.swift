@@ -8,48 +8,79 @@
 import SwiftUI
 import WebKit
 
-// WebView to handle the authentication flow
-struct WebView: UIViewRepresentable
+enum AuthError: Error {
+    case invalidRedirectURL
+    case missingRequiredFields
+    case invalidRefreshURL
+}
+
+struct WebViewContainer: UIViewRepresentable
 {
     let url: URL
-    let onAuthCompletion: (Result<AccessToken, Error>) -> Void
+    let onFinish: (Result<AccessToken, Error>, [HTTPCookie]) -> Void
+    let cookies: [HTTPCookie]?
+    
+    init(url: URL,
+         cookies: [HTTPCookie]? = nil,
+         onFinish: @escaping (Result<AccessToken, Error>, [HTTPCookie]) -> Void) {
+        self.url = url
+        self.onFinish = onFinish
+        self.cookies = cookies
+    }
+    
+    func makeUIView(context: Context) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        let dataStore = WKWebsiteDataStore.nonPersistent()
+        
+        if let cookies = cookies {
+            for cookie in cookies {
+                dataStore.httpCookieStore.setCookie(cookie)
+            }
+        }
+        
+        config.websiteDataStore = dataStore
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
+        return webView
+    }
+    
+    func updateUIView(_ uiView: WKWebView, context: Context) {
+        let request = URLRequest(url: url)
+        uiView.load(request)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
     
     class Coordinator: NSObject, WKNavigationDelegate {
-        var parent: WebView
+        var parent: WebViewContainer
         
-        init(parent: WebView) {
+        init(_ parent: WebViewContainer) {
             self.parent = parent
         }
         
-        // Navigation policy decision handler
-        func webView(_ webView: WKWebView,
-                     decidePolicyFor navigationAction: WKNavigationAction,
-                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            
-            guard let url = navigationAction.request.url else {
-                decisionHandler(.allow)
-                return
-            }
-            
-            // Check if the URL is the redirect URL containing the access token
-            if url.absoluteString.starts(with: "https://playvalorant.com/") {
-                do {
-                    let token = try extractToken(from: url)
-                    parent.onAuthCompletion(.success(token))
-                } catch {
-                    parent.onAuthCompletion(.failure(error))
-                }
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if let url = navigationAction.request.url,
+               url.absoluteString.starts(with: "https://playvalorant.com/") && url.absoluteString.contains("access_token") {
                 decisionHandler(.cancel)
-                return
+                webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
+                    do {
+                        let accessToken = try self.parseAuthRedirect(url: url)
+                        self.parent.onFinish(.success(accessToken), cookies)
+                    } catch {
+                        self.parent.onFinish(.failure(error), cookies)
+                    }
+                }
+            } else {
+                decisionHandler(.allow)
             }
-            decisionHandler(.allow)
         }
         
-        // Extract token from the URL fragment
-        private func extractToken(from url: URL) throws -> AccessToken {
+        func parseAuthRedirect(url: URL) throws -> AccessToken {
             guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                   let fragment = components.fragment else {
-                fatalError()
+                throw AuthError.invalidRedirectURL
             }
             
             let params = fragment.split(separator: "&").map { $0.split(separator: "=") }
@@ -67,33 +98,15 @@ struct WebView: UIViewRepresentable
                 let idToken = values["id_token"],
                 let duration = values["expires_in"].flatMap(Int.init)
             else {
-                fatalError()
+                throw AuthError.missingRequiredFields
             }
             
-            return .init(
+            return AccessToken(
                 type: type,
                 token: token,
                 idToken: idToken,
                 expiration: .init(timeIntervalSinceNow: .init(duration) - 30)
             )
         }
-    }
-    
-    // Create Coordinator instance
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-    
-    // Create WKWebView instance
-    func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
-        webView.navigationDelegate = context.coordinator
-        return webView
-    }
-    
-    // Update WKWebView instance
-    func updateUIView(_ uiView: WKWebView, context: Context) {
-        let request = URLRequest(url: url)
-        uiView.load(request)
     }
 }
