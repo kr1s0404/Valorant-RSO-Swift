@@ -9,39 +9,77 @@ import SwiftUI
 
 struct ContentView: View
 {
-    @State private var showWebView = false
-    @State private var token: AccessToken?
-    @State private var error: Error?
+    @StateObject private var accountManager = AccountManager()
+    @StateObject private var authViewModel: AuthViewModel
+    
+    init() {
+        let accountManager = AccountManager()
+        _accountManager = StateObject(wrappedValue: accountManager)
+        _authViewModel = StateObject(wrappedValue: AuthViewModel(accountManager: accountManager))
+    }
     
     var body: some View
     {
-        VStack {
-            if let token = token {
-                VStack(spacing: 10)
-                {
-                    Text("Token type: \(token.type)")
-                    Text("Token: \(token.token)")
-                    Text("idToken: \(token.idToken)")
-                    Text("expiration: \(token.expiration)")
+        NavigationView 
+        {
+            VStack
+            {
+                List {
+                    Section {
+                        ForEach(accountManager.accounts) { account in
+                            Button(action: {
+                                accountManager.switchToAccount(account)
+                                Task {
+                                    authViewModel.username = account.username
+                                    await authViewModel.checkAndRefreshTokenIfNeeded(for: account)
+                                }
+                            }) {
+                                HStack {
+                                    Text(account.username)
+                                    Spacer()
+                                    if account.id == accountManager.currentAccount?.id {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button("Logout") {
+                                    authViewModel.logout(account: account)
+                                }
+                                .tint(.red)
+                            }
+                        }
+                    }
+                    
+                    Section {
+                        if let currentAccount = accountManager.currentAccount {
+                            Text(currentAccount.accessToken.token)
+                                .lineLimit(1)
+                            Text(currentAccount.accessToken.idToken)
+                                .lineLimit(1)
+                            Text(currentAccount.accessToken.expiration.description)
+                        }
+                    }
+                    
                 }
-                .lineLimit(3)
-            } else if let error = error {
-                Text("Error: \(error.localizedDescription)")
-            } else {
-                Button("Sign In") {
-                    showWebView.toggle()
+                
+                TextField("username", text: $authViewModel.username)
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+                
+                Button("Add Account") {
+                    authViewModel.startNewAccountAuth()
                 }
+                .disabled(authViewModel.username.isEmpty)
             }
-        }
-        .sheet(isPresented: $showWebView) {
-            WebView(url: RiotURL.rsoURL) { result in
-                showWebView = false
-                switch result {
-                    case .success(let token):
-                        self.token = token
-                    case .failure(let error):
-                        self.error = error
-                }
+            .navigationTitle("Valorant Accounts")
+            .sheet(isPresented: $authViewModel.isShowingWebView) {
+                WebViewContainer(
+                    url: RiotURL.rsoURL,
+                    cookies: authViewModel.isAddingNewAccount ? nil : accountManager.currentAccount?.cookies,
+                    onFinish: authViewModel.handleAuthResult
+                )
+                .edgesIgnoringSafeArea(.all)
             }
         }
     }
